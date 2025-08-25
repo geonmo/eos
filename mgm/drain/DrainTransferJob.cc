@@ -545,7 +545,7 @@ DrainTransferJob::BuildTpcDst(const FileDrainInfo& fdrain,
   if ((caprc = SymKey::CreateCapability(&input_cap, output_cap,
                                         symkey, gOFS->mCapabilityValidity))) {
     std::string err = "msg=\"unable to create dst capability, errno=";
-    err += caprc;
+    err += std::to_string(caprc);
     err += "\"";
     ReportError(err);
     return url_dst;
