@@ -689,7 +689,7 @@ XrdMgmOfsFile::GetReplicaHost(unsigned int fsid, const std::string& host,
     }
   }
 
-  replicahost = host;
+  replicahost += host;
   return replicahost;
 }
 

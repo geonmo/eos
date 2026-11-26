@@ -355,3 +355,19 @@ TEST(XrdMgmOfsFile, GetClientOpenFlags)
     ASSERT_FALSE(XrdMgmOfsFile::GetClientOpenFlags(env, oflags, omode));
   }
 }
+
+//------------------------------------------------------------------------------
+// A location the scheduler reported as unavailable is masked in the
+// capability, so that the entry FST fails to open it at once
+//------------------------------------------------------------------------------
+TEST(XrdMgmOfsFile, GetReplicaHostMasksUnavailableLocations)
+{
+  const std::vector<unsigned int> unavailfs{3, 7};
+  ASSERT_EQ("__offline_fst1.example.org",
+            XrdMgmOfsFile::GetReplicaHost(7, "fst1.example.org", unavailfs));
+  ASSERT_EQ("__offline_fst1.example.org",
+            XrdMgmOfsFile::GetReplicaHost(3, "fst1.example.org", unavailfs));
+  ASSERT_EQ("fst2.example.org",
+            XrdMgmOfsFile::GetReplicaHost(5, "fst2.example.org", unavailfs));
+  ASSERT_EQ("fst2.example.org", XrdMgmOfsFile::GetReplicaHost(5, "fst2.example.org", {}));
+}
