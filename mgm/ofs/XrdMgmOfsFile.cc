@@ -674,6 +674,26 @@ XrdMgmOfsFile::getCksumFromOpaque(std::string& cksumType, std::string& cksumValu
 }
 
 //------------------------------------------------------------------------------
+// Get the host to put in the capability for one replica/stripe location
+//------------------------------------------------------------------------------
+std::string
+XrdMgmOfsFile::GetReplicaHost(unsigned int fsid, const std::string& host,
+                              const std::vector<unsigned int>& unavailfs)
+{
+  std::string replicahost;
+
+  for (unsigned int k = 0; k < unavailfs.size(); ++k) {
+    if (fsid == unavailfs[k]) {
+      replicahost = "__offline_";
+      break;
+    }
+  }
+
+  replicahost += host;
+  return replicahost;
+}
+
+//------------------------------------------------------------------------------
 // Get the encryption key configured for a given space
 //------------------------------------------------------------------------------
 std::string
@@ -3821,17 +3841,8 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
         capability += (int) i;
         capability += "=root://";
 
-        // -----------------------------------------------------------------------
-        // Logic to mask 'offline' filesystems
-        // -----------------------------------------------------------------------
-        for (unsigned int k = 0; k < unavailfs.size(); ++k) {
-          if (selectedfs[i] == unavailfs[k]) {
-            replicahost = "__offline_";
-            break;
-          }
-        }
-
-        replicahost = repfilesystem->GetString("host");
+        replicahost =
+            GetReplicaHost(selectedfs[i], repfilesystem->GetString("host"), unavailfs);
         replicaport = atoi(repfilesystem->GetString("port").c_str());
         capability += replicahost.c_str();
         capability += ":";
