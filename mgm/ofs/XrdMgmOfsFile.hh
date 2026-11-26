@@ -511,6 +511,20 @@ private:
   static std::string GetSpaceEncryptionKey(const std::string& space);
 
   //----------------------------------------------------------------------------
+  //! Get the host to put in the capability for one replica/stripe location.
+  //! A location the scheduler reported as unavailable is masked with the
+  //! "__offline_" prefix, so that an FST opening it fails at once.
+  //!
+  //! @param fsid file system id of the location
+  //! @param host host of the file system
+  //! @param unavailfs file systems the scheduler reported as unavailable
+  //!
+  //! @return host to use in the mgm.url<i> entry of the capability
+  //----------------------------------------------------------------------------
+  static std::string GetReplicaHost(unsigned int fsid, const std::string& host,
+                                    const std::vector<unsigned int>& unavailfs);
+
+  //----------------------------------------------------------------------------
   //! Apply the instance encryption key of a space, if any, to the file which
   //! is about to be opened. For an existing file the key of the space recorded
   //! at creation time is used, for a new file the key of the space where the
