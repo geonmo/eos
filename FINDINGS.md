@@ -87,3 +87,33 @@ P0-P5 scale of "Debug And Ticket Priorities" there.
   the status; no data or metadata damage. Instance-wide write refusal is not in
   the P3 list of crash/deadlock/hang/resource exhaustion, but it is close to it.)
 - Blocks the task: no.
+
+## Unavailable stripe locations are no longer masked in the open capability
+
+- File: `mgm/ofs/XrdMgmOfsFile.cc:3825-3834` (`XrdMgmOfsFile::open`, stripe
+  URL loop). Consumers: `fst/layout/RainMetaLayout.cc:247-290` and `:330-356`
+  (entry server opens the remote stripes from `mgm.url<i>`),
+  `fst/XrdFstOfsFile.cc:268-275` (`mgm.rain.store=1` turns the open into
+  `SFS_O_RDWR`).
+- Symptom: the loop sets `replicahost = "__offline_"` for a location listed in
+  `unavailfs`, and the next statement overwrites it with
+  `replicahost = repfilesystem->GetString("host")`. The capability therefore
+  carries the real host of a file system the scheduler reported as unavailable
+  (node set off, no heartbeat, not booted). The entry FST does not ask the MGM
+  again, so it opens that stripe for real: read-only for a RAIN read, and
+  read-write for a reconstruction (`eos.pio.action=reconstruct`, used by drain
+  and fsck repair), which raises `stat.wopen` on a node that was set off. If
+  the host is down, the stripe open has to time out instead of failing at once
+  on an unresolvable name.
+- Evidence: code reading only (2026-11-26); not reproduced on a running
+  instance. Regression of commit `09acad202` (2025-10-24, "MGM: Open: move
+  proxy/fw settings to a seperate function"), which replaced
+  `replicahost += repfilesystem->GetString("host").c_str()` (giving
+  `__offline_<host>`) by an assignment. Upstream `master` showed the same lines
+  on 2026-11-26 and no merge request mentions it. Site report that matches: on
+  a node set off, `wopen` drops to 0 and rises again.
+- Severity: P4 (wrong but recoverable: I/O sent to file systems the MGM
+  considers unavailable and slower RAIN opens while a node is down; no data or
+  metadata damage found. Not P3: the open is bounded by its timeout, it is not
+  a hang).
+- Blocks the task: no.
